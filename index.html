@@ -67,6 +67,104 @@
             font-family: 'IBM Plex Mono', monospace;
         }
         
+        .time-mode-selector {
+            margin-top: 2rem;
+            background: var(--color-surface);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        
+        .mode-toggle {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+        
+        .mode-btn {
+            padding: 0.75rem 1.5rem;
+            border: 2px solid var(--color-border);
+            background: var(--color-surface);
+            color: var(--color-text);
+            border-radius: 8px;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        
+        .mode-btn:hover {
+            border-color: var(--color-primary);
+            transform: translateY(-2px);
+        }
+        
+        .mode-btn.active {
+            background: linear-gradient(135deg, var(--color-primary), var(--color-accent-green));
+            color: #ffffff;
+            border-color: var(--color-primary);
+            font-weight: 600;
+        }
+        
+        .custom-time-inputs {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            padding-top: 1rem;
+            border-top: 1px solid var(--color-border);
+        }
+        
+        .time-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .time-input-group label {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--color-text-dim);
+            font-weight: 500;
+        }
+        
+        .time-input-group input[type="time"] {
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--color-border);
+            border-radius: 8px;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 1rem;
+            color: var(--color-text);
+            background: var(--color-surface-elevated);
+            transition: all 0.3s ease;
+        }
+        
+        .time-input-group input[type="time"]:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+        }
+        
+        .btn-apply {
+            padding: 0.75rem 2rem;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-accent-green));
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-apply:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 102, 204, 0.3);
+        }
+        
         .upload-section {
             background: var(--color-surface);
             border: 2px dashed var(--color-border);
@@ -321,6 +419,25 @@
         <div class="header">
             <h1>Dispatch Analytics</h1>
             <p>Análisis de despachos por períodos de 24h (06:00 - 06:00)</p>
+            
+            <div class="time-mode-selector">
+                <div class="mode-toggle">
+                    <button id="standardModeBtn" class="mode-btn active">Período Estándar (06:00 - 06:00)</button>
+                    <button id="customModeBtn" class="mode-btn">Horario Personalizado</button>
+                </div>
+                
+                <div id="customTimeInputs" class="custom-time-inputs" style="display: none;">
+                    <div class="time-input-group">
+                        <label for="startTime">Hora de inicio:</label>
+                        <input type="time" id="startTime" value="06:00">
+                    </div>
+                    <div class="time-input-group">
+                        <label for="endTime">Hora de fin (día siguiente):</label>
+                        <input type="time" id="endTime" value="06:00">
+                    </div>
+                    <button id="applyCustomTime" class="btn-apply">Aplicar Horario</button>
+                </div>
+            </div>
         </div>
         
         <div class="upload-section" id="uploadSection" onclick="document.getElementById('fileInput').click()">
@@ -363,6 +480,11 @@
     <script>
         let allData = [];
         let periods = [];
+        let timeMode = 'standard'; // 'standard' or 'custom'
+        let customStartHour = 6;
+        let customStartMinute = 0;
+        let customEndHour = 6;
+        let customEndMinute = 0;
         
         const fileInput = document.getElementById('fileInput');
         const uploadSection = document.getElementById('uploadSection');
@@ -370,6 +492,49 @@
         const periodSelector = document.getElementById('periodSelector');
         const summaryGrid = document.getElementById('summaryGrid');
         const tableBody = document.getElementById('tableBody');
+        
+        // Mode toggle elements
+        const standardModeBtn = document.getElementById('standardModeBtn');
+        const customModeBtn = document.getElementById('customModeBtn');
+        const customTimeInputs = document.getElementById('customTimeInputs');
+        const applyCustomTimeBtn = document.getElementById('applyCustomTime');
+        const startTimeInput = document.getElementById('startTime');
+        const endTimeInput = document.getElementById('endTime');
+        
+        // Mode toggle functionality
+        standardModeBtn.addEventListener('click', () => {
+            timeMode = 'standard';
+            standardModeBtn.classList.add('active');
+            customModeBtn.classList.remove('active');
+            customTimeInputs.style.display = 'none';
+            if (allData.length > 0) {
+                createPeriods();
+                displayPeriods();
+                displayPeriodData(0);
+            }
+        });
+        
+        customModeBtn.addEventListener('click', () => {
+            timeMode = 'custom';
+            customModeBtn.classList.add('active');
+            standardModeBtn.classList.remove('active');
+            customTimeInputs.style.display = 'flex';
+        });
+        
+        applyCustomTimeBtn.addEventListener('click', () => {
+            const startParts = startTimeInput.value.split(':');
+            const endParts = endTimeInput.value.split(':');
+            customStartHour = parseInt(startParts[0]);
+            customStartMinute = parseInt(startParts[1]);
+            customEndHour = parseInt(endParts[0]);
+            customEndMinute = parseInt(endParts[1]);
+            
+            if (allData.length > 0) {
+                createPeriods();
+                displayPeriods();
+                displayPeriodData(0);
+            }
+        });
         
         // Drag and drop
         uploadSection.addEventListener('dragover', (e) => {
@@ -480,13 +645,27 @@
             const firstDate = allData[0].dateTime;
             const lastDate = allData[allData.length - 1].dateTime;
             
-            // Encontrar el primer 06:00 después o igual a la primera fecha
+            let startHour, startMinute, endHour, endMinute;
+            
+            if (timeMode === 'standard') {
+                startHour = 6;
+                startMinute = 0;
+                endHour = 6;
+                endMinute = 0;
+            } else {
+                startHour = customStartHour;
+                startMinute = customStartMinute;
+                endHour = customEndHour;
+                endMinute = customEndMinute;
+            }
+            
+            // Encontrar el primer momento de inicio después o igual a la primera fecha
             let periodStart = new Date(firstDate);
-            periodStart.setHours(6, 0, 0, 0);
+            periodStart.setHours(startHour, startMinute, 0, 0);
             
             if (firstDate < periodStart) {
-                // La primera fecha es antes de las 06:00 del mismo día
-                // El período comienza a las 06:00 del día anterior
+                // La primera fecha es antes del horario de inicio del mismo día
+                // El período comienza en el horario de inicio del día anterior
                 periodStart = new Date(periodStart);
                 periodStart.setDate(periodStart.getDate() - 1);
             }
@@ -510,7 +689,9 @@
             const options = { day: '2-digit', month: '2-digit', year: 'numeric' };
             const startStr = start.toLocaleDateString('es-AR', options);
             const endStr = end.toLocaleDateString('es-AR', options);
-            return `${startStr} 06:00 - ${endStr} 06:00`;
+            const startTime = `${String(start.getHours()).padStart(2, '0')}:${String(start.getMinutes()).padStart(2, '0')}`;
+            const endTime = `${String(end.getHours()).padStart(2, '0')}:${String(end.getMinutes()).padStart(2, '0')}`;
+            return `${startStr} ${startTime} - ${endStr} ${endTime}`;
         }
         
         function displayPeriods() {
