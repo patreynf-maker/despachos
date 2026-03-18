@@ -586,7 +586,7 @@
                         <input type="time" id="startTime" value="06:00">
                     </div>
                     <div class="time-input-group">
-                        <label for="endTime">Hora de fin (día siguiente):</label>
+                        <label for="endTime">Hora de fin:</label>
                         <input type="time" id="endTime" value="06:00">
                     </div>
                     <button id="applyCustomTime" class="btn-apply">Aplicar Horario</button>
@@ -711,6 +711,21 @@
                 createPeriods();
                 displayPeriods();
                 displayPeriodData(0);
+            }
+        });
+        
+        // Navegación con Enter entre campos de tiempo
+        startTimeInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                endTimeInput.focus();
+            }
+        });
+        
+        endTimeInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                applyCustomTimeBtn.click();
             }
         });
         
