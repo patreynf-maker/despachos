@@ -836,36 +836,63 @@
                 startMinute = 0;
                 endHour = 6;
                 endMinute = 0;
+                
+                // Modo estándar: períodos de 24h
+                let periodStart = new Date(firstDate);
+                periodStart.setHours(startHour, startMinute, 0, 0);
+                
+                if (firstDate < periodStart) {
+                    periodStart = new Date(periodStart);
+                    periodStart.setDate(periodStart.getDate() - 1);
+                }
+                
+                while (periodStart <= lastDate) {
+                    const periodEnd = new Date(periodStart);
+                    periodEnd.setDate(periodEnd.getDate() + 1);
+                    
+                    periods.push({
+                        start: new Date(periodStart),
+                        end: new Date(periodEnd),
+                        label: formatPeriodLabel(periodStart, periodEnd)
+                    });
+                    
+                    periodStart = new Date(periodEnd);
+                }
             } else {
+                // Modo personalizado: horario libre sin restricción de 24h
                 startHour = customStartHour;
                 startMinute = customStartMinute;
                 endHour = customEndHour;
                 endMinute = customEndMinute;
-            }
-            
-            // Encontrar el primer momento de inicio después o igual a la primera fecha
-            let periodStart = new Date(firstDate);
-            periodStart.setHours(startHour, startMinute, 0, 0);
-            
-            if (firstDate < periodStart) {
-                // La primera fecha es antes del horario de inicio del mismo día
-                // El período comienza en el horario de inicio del día anterior
-                periodStart = new Date(periodStart);
-                periodStart.setDate(periodStart.getDate() - 1);
-            }
-            
-            // Crear períodos de 24h
-            while (periodStart <= lastDate) {
-                const periodEnd = new Date(periodStart);
-                periodEnd.setDate(periodEnd.getDate() + 1);
                 
-                periods.push({
-                    start: new Date(periodStart),
-                    end: new Date(periodEnd),
-                    label: formatPeriodLabel(periodStart, periodEnd)
-                });
+                // Encontrar el primer momento de inicio
+                let periodStart = new Date(firstDate);
+                periodStart.setHours(startHour, startMinute, 0, 0);
                 
-                periodStart = new Date(periodEnd);
+                if (firstDate < periodStart) {
+                    periodStart = new Date(periodStart);
+                    periodStart.setDate(periodStart.getDate() - 1);
+                }
+                
+                while (periodStart <= lastDate) {
+                    const periodEnd = new Date(periodStart);
+                    periodEnd.setHours(endHour, endMinute, 0, 0);
+                    
+                    // Si la hora de fin es menor o igual a la de inicio, es del día siguiente
+                    if (endHour < startHour || (endHour === startHour && endMinute <= startMinute)) {
+                        periodEnd.setDate(periodEnd.getDate() + 1);
+                    }
+                    
+                    periods.push({
+                        start: new Date(periodStart),
+                        end: new Date(periodEnd),
+                        label: formatPeriodLabel(periodStart, periodEnd)
+                    });
+                    
+                    // Avanzar al siguiente período (mismo horario, día siguiente)
+                    periodStart = new Date(periodStart);
+                    periodStart.setDate(periodStart.getDate() + 1);
+                }
             }
         }
         
