@@ -334,6 +334,56 @@
             overflow: hidden;
         }
         
+        .table-header-with-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem;
+            background: var(--color-surface-elevated);
+            border-bottom: 2px solid var(--color-border);
+        }
+        
+        .table-header-with-actions h3 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--color-primary);
+            margin: 0;
+        }
+        
+        .btn-copy {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            background: var(--color-surface);
+            border: 2px solid var(--color-border);
+            border-radius: 8px;
+            color: var(--color-text);
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-copy:hover {
+            background: linear-gradient(135deg, var(--color-primary), var(--color-accent-green));
+            color: #ffffff;
+            border-color: var(--color-primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 102, 204, 0.2);
+        }
+        
+        .btn-copy .copy-icon {
+            font-size: 1.2rem;
+        }
+        
+        .btn-copy.copied {
+            background: var(--color-accent-green);
+            color: #ffffff;
+            border-color: var(--color-accent-green);
+        }
+        
         table {
             width: 100%;
             border-collapse: collapse;
@@ -607,6 +657,12 @@
             <div class="summary-grid" id="summaryGrid"></div>
             
             <div class="data-table">
+                <div class="table-header-with-actions">
+                    <h3>Resumen de Despachos</h3>
+                    <button id="copyDispatchBtn" class="btn-copy" title="Copiar cantidades para Excel">
+                        <span class="copy-icon">📋</span> Copiar Cantidades
+                    </button>
+                </div>
                 <table>
                     <thead>
                         <tr>
@@ -670,6 +726,7 @@
         const periodSelector = document.getElementById('periodSelector');
         const summaryGrid = document.getElementById('summaryGrid');
         const tableBody = document.getElementById('tableBody');
+        const copyDispatchBtn = document.getElementById('copyDispatchBtn');
         
         // Mode toggle elements
         const standardModeBtn = document.getElementById('standardModeBtn');
@@ -726,6 +783,52 @@
             if (e.key === 'Enter') {
                 e.preventDefault();
                 applyCustomTimeBtn.click();
+            }
+        });
+        
+        // Copy dispatch counts to clipboard
+        copyDispatchBtn.addEventListener('click', () => {
+            const superCount = document.getElementById('super-count').textContent;
+            const infiniaCount = document.getElementById('infinia-count').textContent;
+            const dieselCount = document.getElementById('diesel-count').textContent;
+            const goCount = document.getElementById('go-count').textContent;
+            
+            // Formato: números separados por tabulaciones para pegar en Excel
+            const textToCopy = `${superCount}\t${infiniaCount}\t${dieselCount}\t${goCount}`;
+            
+            // Método alternativo compatible con más navegadores
+            const textArea = document.createElement('textarea');
+            textArea.value = textToCopy;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-9999px';
+            textArea.style.top = '0';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                if (successful) {
+                    // Feedback visual
+                    const originalText = copyDispatchBtn.innerHTML;
+                    copyDispatchBtn.innerHTML = '<span class="copy-icon">✓</span> ¡Copiado!';
+                    copyDispatchBtn.classList.add('copied');
+                    
+                    setTimeout(() => {
+                        copyDispatchBtn.innerHTML = originalText;
+                        copyDispatchBtn.classList.remove('copied');
+                    }, 2000);
+                } else {
+                    throw new Error('execCommand falló');
+                }
+            } catch (err) {
+                document.body.removeChild(textArea);
+                
+                // Mostrar texto para copiar manualmente
+                const message = `Copia estos números:\n${superCount}  ${infiniaCount}  ${dieselCount}  ${goCount}`;
+                alert(message);
             }
         });
         
