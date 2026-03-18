@@ -412,6 +412,160 @@
             margin: 1rem 0;
             font-family: 'IBM Plex Mono', monospace;
         }
+        
+        .ypf-ruta-section {
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 2px solid var(--color-border);
+        }
+        
+        .ypf-ruta-table-wrapper {
+            background: var(--color-surface);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        
+        .ypf-ruta-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .ypf-ruta-table thead {
+            background: linear-gradient(135deg, var(--color-primary), var(--color-accent-green));
+        }
+        
+        .ypf-ruta-table th {
+            padding: 1rem;
+            text-align: center;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .ypf-ruta-table td {
+            padding: 0.75rem 1rem;
+            text-align: center;
+            border-bottom: 1px solid var(--color-border);
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 1rem;
+        }
+        
+        .ypf-ruta-table tbody tr:hover {
+            background: var(--color-surface-elevated);
+        }
+        
+        .ypf-ruta-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .ypf-ruta-empty {
+            padding: 2rem;
+            text-align: center;
+            color: var(--color-text-dim);
+            font-family: 'IBM Plex Mono', monospace;
+        }
+        
+        .volume-section {
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 2px solid var(--color-border);
+        }
+        
+        .section-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--color-primary);
+            text-align: center;
+            margin-bottom: 2rem;
+            font-family: 'Darker Grotesque', sans-serif;
+        }
+        
+        .volume-table-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+        
+        .volume-product-table {
+            background: var(--color-surface);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        
+        .volume-product-header {
+            padding: 1rem;
+            font-weight: 700;
+            font-size: 1.2rem;
+            text-align: center;
+            color: #ffffff;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+        
+        .volume-product-header.super {
+            background: var(--color-accent-navy);
+        }
+        
+        .volume-product-header.infinia {
+            background: var(--color-accent-blue);
+        }
+        
+        .volume-product-header.diesel {
+            background: var(--color-accent-green);
+        }
+        
+        .volume-product-header.go {
+            background: var(--color-accent-teal);
+        }
+        
+        .volume-table {
+            width: 100%;
+        }
+        
+        .volume-table th,
+        .volume-table td {
+            padding: 0.75rem 1rem;
+            text-align: center;
+            border-bottom: 1px solid var(--color-border);
+        }
+        
+        .volume-table th {
+            background: var(--color-surface-elevated);
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--color-text-dim);
+        }
+        
+        .volume-table td {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 1rem;
+        }
+        
+        .volume-table td:last-child {
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+        
+        .volume-table tr.total-row {
+            background: var(--color-surface-elevated);
+            font-weight: 700;
+        }
+        
+        .volume-table tr.total-row td {
+            border-top: 2px solid var(--color-border);
+            font-size: 1.1rem;
+            color: var(--color-text);
+        }
+        
+        .volume-table tr.total-row td:last-child {
+            font-size: 1.3rem;
+            color: var(--color-primary);
+        }
     </style>
 </head>
 <body>
@@ -473,6 +627,30 @@
                         </tr>
                     </tbody>
                 </table>
+            </div>
+            
+            <div class="ypf-ruta-section">
+                <h2 class="section-title">Despachos YPF en Ruta</h2>
+                <div class="ypf-ruta-table-wrapper">
+                    <table class="ypf-ruta-table" id="ypfRutaTable">
+                        <thead>
+                            <tr>
+                                <th>Hora</th>
+                                <th>Combustible</th>
+                                <th>Volumen</th>
+                                <th>Importe</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ypfRutaTableBody">
+                            <!-- Se llenará dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="volume-section">
+                <h2 class="section-title">Volumen Despachado por Producto y Surtidor</h2>
+                <div class="volume-table-container" id="volumeTableContainer"></div>
             </div>
         </div>
     </div>
@@ -597,14 +775,20 @@
                         dataStarted = true;
                         
                         try {
+                            const surtidor = cells[1].getElementsByTagName('Data')[0].textContent;
                             const producto = cells[2].getElementsByTagName('Data')[0].textContent;
                             const tipoPago = cells[3].getElementsByTagName('Data')[0].textContent;
+                            const importe = parseFloat(cells[4].getElementsByTagName('Data')[0].textContent);
+                            const volumen = parseFloat(cells[5].getElementsByTagName('Data')[0].textContent);
                             
                             allData.push({
                                 dateTime: parseDateTime(dateTimeStr),
                                 dateTimeStr: dateTimeStr,
+                                surtidor: surtidor,
                                 producto: producto,
-                                tipoPago: tipoPago
+                                tipoPago: tipoPago,
+                                importe: importe,
+                                volumen: volumen
                             });
                         } catch (e) {
                             // Ignorar filas con formato incorrecto
@@ -743,6 +927,12 @@
             
             // Actualizar resumen
             displaySummary(periodData, counts);
+            
+            // Actualizar tabla YPF en Ruta
+            displayYPFRuta(periodData);
+            
+            // Actualizar tabla de volumen por surtidor
+            displayVolumeByPump(periodData);
         }
         
         function displaySummary(periodData, counts) {
@@ -766,6 +956,132 @@
                     <div class="summary-label" style="margin-top: 0.5rem;">${productoMasVendido[1]} despachos</div>
                 </div>
             `;
+        }
+        
+        function displayYPFRuta(periodData) {
+            const tableBody = document.getElementById('ypfRutaTableBody');
+            
+            // Filtrar solo los despachos "YPF en Ruta"
+            const ypfRutaData = periodData.filter(d => 
+                d.tipoPago && d.tipoPago.toLowerCase().includes('ypf en ruta')
+            );
+            
+            if (ypfRutaData.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="4" class="ypf-ruta-empty">No hay despachos de YPF en Ruta en este período</td></tr>';
+                return;
+            }
+            
+            // Mapeo de nombres de productos
+            const productNames = {
+                'NS XXI': 'SUPER',
+                'INFINIA': 'INFINIA',
+                'D.DIESEL500': 'DIESEL 500',
+                'GO-INFINIA DIESEL': 'INFINIA DIESEL'
+            };
+            
+            let rows = '';
+            ypfRutaData.forEach(d => {
+                const hora = d.dateTime.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+                const combustible = productNames[d.producto] || d.producto;
+                const volumen = d.volumen.toFixed(2).replace('.', ',');
+                const importe = d.importe.toFixed(2).replace('.', ',');
+                
+                rows += `
+                    <tr>
+                        <td>${hora}</td>
+                        <td>${combustible}</td>
+                        <td>${volumen}</td>
+                        <td>$${importe}</td>
+                    </tr>
+                `;
+            });
+            
+            tableBody.innerHTML = rows;
+        }
+        
+        function displayVolumeByPump(periodData) {
+            const volumeContainer = document.getElementById('volumeTableContainer');
+            
+            // Agrupar volumen por producto y surtidor
+            const volumeByProduct = {
+                'NS XXI': {},
+                'INFINIA': {},
+                'D.DIESEL500': {},
+                'GO-INFINIA DIESEL': {}
+            };
+            
+            periodData.forEach(d => {
+                if (volumeByProduct.hasOwnProperty(d.producto)) {
+                    if (!volumeByProduct[d.producto][d.surtidor]) {
+                        volumeByProduct[d.producto][d.surtidor] = 0;
+                    }
+                    volumeByProduct[d.producto][d.surtidor] += d.volumen;
+                }
+            });
+            
+            // Mapeo de nombres de productos
+            const productNames = {
+                'NS XXI': 'SUPER',
+                'INFINIA': 'INFINIA',
+                'D.DIESEL500': 'DIESEL 500',
+                'GO-INFINIA DIESEL': 'INFINIA DIESEL'
+            };
+            
+            const productClasses = {
+                'NS XXI': 'super',
+                'INFINIA': 'infinia',
+                'D.DIESEL500': 'diesel',
+                'GO-INFINIA DIESEL': 'go'
+            };
+            
+            // Generar tablas HTML
+            volumeContainer.innerHTML = '';
+            
+            Object.keys(volumeByProduct).forEach(producto => {
+                const pumps = volumeByProduct[producto];
+                const pumpKeys = Object.keys(pumps).sort();
+                
+                if (pumpKeys.length === 0) return;
+                
+                // Calcular total
+                const total = pumpKeys.reduce((sum, pump) => sum + pumps[pump], 0);
+                
+                const tableDiv = document.createElement('div');
+                tableDiv.className = 'volume-product-table';
+                
+                let rows = '';
+                pumpKeys.forEach(pump => {
+                    rows += `
+                        <tr>
+                            <td>${pump}</td>
+                            <td>${pumps[pump].toFixed(2).replace('.', ',')}</td>
+                        </tr>
+                    `;
+                });
+                
+                tableDiv.innerHTML = `
+                    <div class="volume-product-header ${productClasses[producto]}">
+                        ${productNames[producto]}
+                    </div>
+                    <table class="volume-table">
+                        <thead>
+                            <tr>
+                                <th>Surtidor</th>
+                                <th>Volumen</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rows}
+                            <tr class="total-row">
+                                <td><strong>Total</strong></td>
+                                <td><strong>${total.toFixed(2).replace('.', ',')}</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                `;
+                
+                volumeContainer.appendChild(tableDiv);
+            });
         }
         
         function showError(message) {
