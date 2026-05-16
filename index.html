@@ -1147,7 +1147,15 @@
         function displayVolumeByPump(periodData) {
             const volumeContainer = document.getElementById('volumeTableContainer');
             
-            // Agrupar volumen por producto y surtidor
+            // Definir todos los surtidores por producto
+            const allPumps = {
+                'NS XXI': ['01 B', '02 B', '03 B', '04 B', '05 B', '06 B', '07 B', '08 B'],
+                'INFINIA': ['01 A', '02 A', '03 A', '04 A', '05 A', '06 A', '07 A', '08 A'],
+                'D.DIESEL500': ['01 D', '02 D', '03 D', '04 D', '05 D', '06 D', '07 D', '08 D', '10 A'],
+                'GO-INFINIA DIESEL': ['01 C', '02 C', '03 C', '04 C', '05 C', '06 C', '07 C', '08 C', '09 A']
+            };
+            
+            // Inicializar volumen en 0 para todos los surtidores
             const volumeByProduct = {
                 'NS XXI': {},
                 'INFINIA': {},
@@ -1155,12 +1163,19 @@
                 'GO-INFINIA DIESEL': {}
             };
             
+            // Inicializar todos los surtidores en 0
+            Object.keys(allPumps).forEach(producto => {
+                allPumps[producto].forEach(pump => {
+                    volumeByProduct[producto][pump] = 0;
+                });
+            });
+            
+            // Sumar volúmenes reales
             periodData.forEach(d => {
                 if (volumeByProduct.hasOwnProperty(d.producto)) {
-                    if (!volumeByProduct[d.producto][d.surtidor]) {
-                        volumeByProduct[d.producto][d.surtidor] = 0;
+                    if (volumeByProduct[d.producto].hasOwnProperty(d.surtidor)) {
+                        volumeByProduct[d.producto][d.surtidor] += d.volumen;
                     }
-                    volumeByProduct[d.producto][d.surtidor] += d.volumen;
                 }
             });
             
@@ -1184,9 +1199,7 @@
             
             Object.keys(volumeByProduct).forEach(producto => {
                 const pumps = volumeByProduct[producto];
-                const pumpKeys = Object.keys(pumps).sort();
-                
-                if (pumpKeys.length === 0) return;
+                const pumpKeys = allPumps[producto]; // Usar orden predefinido
                 
                 // Calcular total
                 const total = pumpKeys.reduce((sum, pump) => sum + pumps[pump], 0);
@@ -1196,10 +1209,11 @@
                 
                 let rows = '';
                 pumpKeys.forEach(pump => {
+                    const volume = pumps[pump].toFixed(2).replace('.', ',');
                     rows += `
                         <tr>
                             <td>${pump}</td>
-                            <td>${pumps[pump].toFixed(2).replace('.', ',')}</td>
+                            <td>${volume}</td>
                         </tr>
                     `;
                 });
