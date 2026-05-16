@@ -109,12 +109,69 @@
         
         .custom-time-inputs {
             display: flex;
-            gap: 1.5rem;
-            justify-content: center;
-            align-items: flex-end;
-            flex-wrap: wrap;
+            flex-direction: column;
+            gap: 1rem;
             padding-top: 1rem;
             border-top: 1px solid var(--color-border);
+        }
+        
+        .custom-periods-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .period-config {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+            padding: 1rem;
+            background: var(--color-surface-elevated);
+            border-radius: 8px;
+            border: 1px solid var(--color-border);
+        }
+        
+        .period-number {
+            font-family: 'IBM Plex Mono', monospace;
+            font-weight: 600;
+            color: var(--color-primary);
+            min-width: 80px;
+        }
+        
+        .custom-controls {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn-add-period,
+        .btn-remove-period {
+            padding: 0.75rem 1.5rem;
+            background: var(--color-surface);
+            border: 2px solid var(--color-border);
+            border-radius: 8px;
+            color: var(--color-text);
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-add-period:hover {
+            background: var(--color-accent-green);
+            color: #ffffff;
+            border-color: var(--color-accent-green);
+            transform: translateY(-2px);
+        }
+        
+        .btn-remove-period:hover {
+            background: #cc0000;
+            color: #ffffff;
+            border-color: #cc0000;
+            transform: translateY(-2px);
         }
         
         .time-input-group {
@@ -631,15 +688,24 @@
                 </div>
                 
                 <div id="customTimeInputs" class="custom-time-inputs" style="display: none;">
-                    <div class="time-input-group">
-                        <label for="startTime">Hora de inicio:</label>
-                        <input type="time" id="startTime" value="06:00">
+                    <div class="custom-periods-container">
+                        <div class="period-config" id="periodConfig1">
+                            <span class="period-number">Período 1:</span>
+                            <div class="time-input-group">
+                                <label for="startTime1">Inicio:</label>
+                                <input type="time" class="start-time" id="startTime1" value="06:00">
+                            </div>
+                            <div class="time-input-group">
+                                <label for="endTime1">Fin:</label>
+                                <input type="time" class="end-time" id="endTime1" value="12:00">
+                            </div>
+                        </div>
                     </div>
-                    <div class="time-input-group">
-                        <label for="endTime">Hora de fin:</label>
-                        <input type="time" id="endTime" value="06:00">
+                    <div class="custom-controls">
+                        <button id="addPeriodBtn" class="btn-add-period">+ Agregar Período</button>
+                        <button id="removePeriodBtn" class="btn-remove-period" style="display: none;">- Quitar Período</button>
+                        <button id="applyCustomTime" class="btn-apply">Aplicar Horarios</button>
                     </div>
-                    <button id="applyCustomTime" class="btn-apply">Aplicar Horario</button>
                 </div>
             </div>
         </div>
@@ -715,10 +781,10 @@
         let allData = [];
         let periods = [];
         let timeMode = 'standard'; // 'standard' or 'custom'
-        let customStartHour = 6;
-        let customStartMinute = 0;
-        let customEndHour = 6;
-        let customEndMinute = 0;
+        let customPeriods = [
+            { startHour: 6, startMinute: 0, endHour: 12, endMinute: 0 }
+        ];
+        let periodConfigCount = 1;
         
         const fileInput = document.getElementById('fileInput');
         const uploadSection = document.getElementById('uploadSection');
@@ -733,8 +799,9 @@
         const customModeBtn = document.getElementById('customModeBtn');
         const customTimeInputs = document.getElementById('customTimeInputs');
         const applyCustomTimeBtn = document.getElementById('applyCustomTime');
-        const startTimeInput = document.getElementById('startTime');
-        const endTimeInput = document.getElementById('endTime');
+        const addPeriodBtn = document.getElementById('addPeriodBtn');
+        const removePeriodBtn = document.getElementById('removePeriodBtn');
+        const customPeriodsContainer = document.querySelector('.custom-periods-container');
         
         // Mode toggle functionality
         standardModeBtn.addEventListener('click', () => {
@@ -756,13 +823,77 @@
             customTimeInputs.style.display = 'flex';
         });
         
+        // Add period button
+        addPeriodBtn.addEventListener('click', () => {
+            if (periodConfigCount >= 10) {
+                alert('Máximo 10 períodos permitidos');
+                return;
+            }
+            
+            periodConfigCount++;
+            const newPeriod = document.createElement('div');
+            newPeriod.className = 'period-config';
+            newPeriod.id = `periodConfig${periodConfigCount}`;
+            
+            // Calcular horarios sugeridos basados en el último período
+            const lastStartInput = document.getElementById(`startTime${periodConfigCount - 1}`);
+            const lastEndInput = document.getElementById(`endTime${periodConfigCount - 1}`);
+            const suggestedStart = lastEndInput.value;
+            const suggestedEnd = lastEndInput.value; // Mismo valor inicial
+            
+            newPeriod.innerHTML = `
+                <span class="period-number">Período ${periodConfigCount}:</span>
+                <div class="time-input-group">
+                    <label for="startTime${periodConfigCount}">Inicio:</label>
+                    <input type="time" class="start-time" id="startTime${periodConfigCount}" value="${suggestedStart}">
+                </div>
+                <div class="time-input-group">
+                    <label for="endTime${periodConfigCount}">Fin:</label>
+                    <input type="time" class="end-time" id="endTime${periodConfigCount}" value="${suggestedEnd}">
+                </div>
+            `;
+            
+            customPeriodsContainer.appendChild(newPeriod);
+            setupPeriodNavigation(periodConfigCount);
+            
+            if (periodConfigCount > 1) {
+                removePeriodBtn.style.display = 'block';
+            }
+        });
+        
+        // Remove period button
+        removePeriodBtn.addEventListener('click', () => {
+            if (periodConfigCount > 1) {
+                const lastPeriod = document.getElementById(`periodConfig${periodConfigCount}`);
+                lastPeriod.remove();
+                periodConfigCount--;
+                
+                if (periodConfigCount === 1) {
+                    removePeriodBtn.style.display = 'none';
+                }
+            }
+        });
+        
+        // Apply custom periods
         applyCustomTimeBtn.addEventListener('click', () => {
-            const startParts = startTimeInput.value.split(':');
-            const endParts = endTimeInput.value.split(':');
-            customStartHour = parseInt(startParts[0]);
-            customStartMinute = parseInt(startParts[1]);
-            customEndHour = parseInt(endParts[0]);
-            customEndMinute = parseInt(endParts[1]);
+            customPeriods = [];
+            
+            for (let i = 1; i <= periodConfigCount; i++) {
+                const startInput = document.getElementById(`startTime${i}`);
+                const endInput = document.getElementById(`endTime${i}`);
+                
+                if (startInput && endInput) {
+                    const startParts = startInput.value.split(':');
+                    const endParts = endInput.value.split(':');
+                    
+                    customPeriods.push({
+                        startHour: parseInt(startParts[0]),
+                        startMinute: parseInt(startParts[1]),
+                        endHour: parseInt(endParts[0]),
+                        endMinute: parseInt(endParts[1])
+                    });
+                }
+            }
             
             if (allData.length > 0) {
                 createPeriods();
@@ -771,20 +902,35 @@
             }
         });
         
-        // Navegación con Enter entre campos de tiempo
-        startTimeInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                endTimeInput.focus();
+        // Setup Enter key navigation for a specific period
+        function setupPeriodNavigation(periodNum) {
+            const startInput = document.getElementById(`startTime${periodNum}`);
+            const endInput = document.getElementById(`endTime${periodNum}`);
+            
+            if (startInput && endInput) {
+                startInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        endInput.focus();
+                    }
+                });
+                
+                endInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const nextStartInput = document.getElementById(`startTime${periodNum + 1}`);
+                        if (nextStartInput) {
+                            nextStartInput.focus();
+                        } else {
+                            applyCustomTimeBtn.click();
+                        }
+                    }
+                });
             }
-        });
+        }
         
-        endTimeInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                applyCustomTimeBtn.click();
-            }
-        });
+        // Setup navigation for initial period
+        setupPeriodNavigation(1);
         
         // Copy dispatch counts to clipboard
         copyDispatchBtn.addEventListener('click', () => {
@@ -947,17 +1093,10 @@
             const firstDate = allData[0].dateTime;
             const lastDate = allData[allData.length - 1].dateTime;
             
-            let startHour, startMinute, endHour, endMinute;
-            
             if (timeMode === 'standard') {
-                startHour = 6;
-                startMinute = 0;
-                endHour = 6;
-                endMinute = 0;
-                
-                // Modo estándar: períodos de 24h
+                // Modo estándar: períodos de 24h de 06:00 a 06:00
                 let periodStart = new Date(firstDate);
-                periodStart.setHours(startHour, startMinute, 0, 0);
+                periodStart.setHours(6, 0, 0, 0);
                 
                 if (firstDate < periodStart) {
                     periodStart = new Date(periodStart);
@@ -977,39 +1116,43 @@
                     periodStart = new Date(periodEnd);
                 }
             } else {
-                // Modo personalizado: horario libre sin restricción de 24h
-                startHour = customStartHour;
-                startMinute = customStartMinute;
-                endHour = customEndHour;
-                endMinute = customEndMinute;
+                // Modo personalizado: múltiples períodos por día
+                // Primero, encontrar todos los días únicos en el rango
+                const startDay = new Date(firstDate);
+                startDay.setHours(0, 0, 0, 0);
                 
-                // Encontrar el primer momento de inicio
-                let periodStart = new Date(firstDate);
-                periodStart.setHours(startHour, startMinute, 0, 0);
+                const endDay = new Date(lastDate);
+                endDay.setHours(23, 59, 59, 999);
                 
-                if (firstDate < periodStart) {
-                    periodStart = new Date(periodStart);
-                    periodStart.setDate(periodStart.getDate() - 1);
-                }
+                let currentDay = new Date(startDay);
                 
-                while (periodStart <= lastDate) {
-                    const periodEnd = new Date(periodStart);
-                    periodEnd.setHours(endHour, endMinute, 0, 0);
-                    
-                    // Si la hora de fin es menor o igual a la de inicio, es del día siguiente
-                    if (endHour < startHour || (endHour === startHour && endMinute <= startMinute)) {
-                        periodEnd.setDate(periodEnd.getDate() + 1);
-                    }
-                    
-                    periods.push({
-                        start: new Date(periodStart),
-                        end: new Date(periodEnd),
-                        label: formatPeriodLabel(periodStart, periodEnd)
+                while (currentDay <= endDay) {
+                    // Para cada día, crear todos los períodos personalizados
+                    customPeriods.forEach(period => {
+                        const periodStart = new Date(currentDay);
+                        periodStart.setHours(period.startHour, period.startMinute, 0, 0);
+                        
+                        const periodEnd = new Date(currentDay);
+                        periodEnd.setHours(period.endHour, period.endMinute, 0, 0);
+                        
+                        // Si la hora de fin es menor o igual a la de inicio, es del día siguiente
+                        if (period.endHour < period.startHour || 
+                            (period.endHour === period.startHour && period.endMinute <= period.startMinute)) {
+                            periodEnd.setDate(periodEnd.getDate() + 1);
+                        }
+                        
+                        // Solo agregar el período si está dentro del rango de datos
+                        if (periodEnd >= firstDate && periodStart <= lastDate) {
+                            periods.push({
+                                start: new Date(periodStart),
+                                end: new Date(periodEnd),
+                                label: formatPeriodLabel(periodStart, periodEnd)
+                            });
+                        }
                     });
                     
-                    // Avanzar al siguiente período (mismo horario, día siguiente)
-                    periodStart = new Date(periodStart);
-                    periodStart.setDate(periodStart.getDate() + 1);
+                    // Avanzar al siguiente día
+                    currentDay.setDate(currentDay.getDate() + 1);
                 }
             }
         }
